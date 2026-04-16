@@ -55,14 +55,24 @@ jobs:
     needs: [test-backend, test-frontend]
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-      - name: Build Backend Image
-        run: docker build -t ushawty-backend ./server
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Frontend Image
-        run: docker build -t ushawty-frontend ./client
+    - name: Build & Push Backend
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest ./server
+        docker push ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
+
+    - name: Build & Push Frontend
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest ./client
+        docker push ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
