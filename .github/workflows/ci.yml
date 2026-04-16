@@ -97,7 +97,6 @@ jobs:
 
                 echo "🔍 Detecting current active port..."
 
-                # Detect current frontend port from nginx config
                 CURRENT_FRONTEND_PORT=$(grep -o '127.0.0.1:[0-9]*' /etc/nginx/nginx.conf | head -1 | cut -d: -f2)
 
                 if [ "$CURRENT_FRONTEND_PORT" = "3001" ]; then
@@ -114,37 +113,85 @@ jobs:
 
                 echo "📦 Deploying to new ports: $NEW_FRONTEND_PORT / $NEW_BACKEND_PORT"
 
-                # Remove any leftover green containers
+                # Clean leftover
                 docker stop frontend-green backend-green || true
                 docker rm frontend-green backend-green || true
 
-                # Run new containers (green)
+                # Run new containers
                 docker run -d -p $NEW_BACKEND_PORT:5000 --name backend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
                 docker run -d -p $NEW_FRONTEND_PORT:80 --name frontend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-                echo "⏳ Waiting for backend health check..."
+                echo "⏳ Waiting for backend health..."
 
-                # Health check loop
+                # Backend health check loop
                 for i in {1..10}; do
                     if curl -f http://localhost:$NEW_BACKEND_PORT/health; then
-                    echo "✅ Backend is healthy"
+                    echo "✅ Backend healthy"
                     break
                     fi
                     echo "🔁 Retry $i..."
                     sleep 2
                 done
 
-                # Final check (fail deployment if unhealthy)
                 if ! curl -f http://localhost:$NEW_BACKEND_PORT/health; then
-                    echo "❌ Health check failed. Aborting deployment."
+                    echo "❌ Backend failed"
                     docker stop backend-green frontend-green
                     docker rm backend-green frontend-green
                     exit 1
                 fi
 
-                echo "🔀 Switching NGINX to new version..."
+                echo "🌐 Checking frontend rendering..."
 
-                # Update nginx config dynamically
+                if curl -s http://localhost:$NEW_FRONTEND_PORT | grep "BLUE BULLET LINK CORE"; then
+                    echo "✅ Frontend rendering OK"
+                else
+                    echo "❌ Frontend rendering failed"
+                    docker stop backend-green frontend-green
+                    docker rm backend-green frontend-green
+                    exit 1
+                fi
+
+                echo "🔁 Testing API flow..."
+
+                RESPONSE=$(curl -s -X POST http://localhost:$NEW_BACKEND_PORT/shorten \
+                    -H "Content-Type: application/json" \
+                    -d '{"url":"https://example.com"}')
+
+                echo "Response: $RESPONSE"
+
+                if echo "$RESPONSE" | grep "shortUrl"; then
+                    echo "✅ API working"
+                else
+                    echo "❌ API failed"
+                    docker stop backend-green frontend-green
+                    docker rm backend-green frontend-green
+                    exit 1
+                fi
+
+                echo "🔗 Testing redirect..."
+
+                ID=$(echo "$RESPONSE" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
+
+                if [ -z "$ID" ]; then
+                    echo "❌ Failed to extract ID"
+                    docker stop backend-green frontend-green
+                    docker rm backend-green frontend-green
+                    exit 1
+                fi
+
+                REDIRECT_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_BACKEND_PORT/$ID)
+
+                if [ "$REDIRECT_STATUS" = "302" ]; then
+                    echo "✅ Redirect working"
+                else
+                    echo "❌ Redirect failed"
+                    docker stop backend-green frontend-green
+                    docker rm backend-green frontend-green
+                    exit 1
+                fi
+
+                echo "🔀 Switching NGINX..."
+
                 sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|g" /etc/nginx/nginx.conf
                 sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|g" /etc/nginx/nginx.conf
 
@@ -160,4 +207,4 @@ jobs:
                 docker rename frontend-green frontend-blue
                 docker rename backend-green backend-blue
 
-                echo "✅ Deployment successful!"
+                echo "🎉 Deployment successful with FULL validation!"
