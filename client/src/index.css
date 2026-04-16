@@ -1,0 +1,64 @@
+:root {
+  --bg-0: #10121a;
+  --bg-1: #161a24;
+  --ink-0: #c8cfdd;
+  --ink-1: #a7b0c2;
+  --ink-dim: #7b8599;
+  --line: #555f7a;
+  --line-soft: rgba(120, 132, 156, 0.24);
+  --panel: rgba(24, 29, 42, 0.82);
+  --panel-strong: rgba(20, 24, 36, 0.92);
+  --danger: #c986a5;
+  --ok: #8fb1bf;
+
+  font-family: 'Rajdhani', 'Teko', 'Chakra Petch', sans-serif;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--ink-0);
+  background: var(--bg-0);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  color: var(--ink-0);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(96, 112, 142, 0.2), transparent 34%),
+    radial-gradient(circle at 86% 85%, rgba(84, 103, 130, 0.18), transparent 30%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-0));
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(133, 145, 168, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(133, 145, 168, 0.08) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+html,
+body,
+#root {
+  background: var(--bg-0);
+}
+
+a {
+  color: inherit;
+}

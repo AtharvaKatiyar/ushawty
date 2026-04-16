@@ -1,0 +1,322 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+
+.cyber-shell {
+  width: min(1150px, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(20, 24, 35, 0.94), rgba(16, 20, 30, 0.96));
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(110, 122, 146, 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.28);
+  animation: boot 1200ms ease-out;
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.3) 0,
+    rgba(255, 255, 255, 0.3) 1px,
+    transparent 2px,
+    transparent 5px
+  );
+}
+
+.hud-panel,
+.hud-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-strong);
+  padding: 0.9rem 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.hud-footer {
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.micro {
+  margin: 0;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-1);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+h1 {
+  font-size: clamp(1.35rem, 3.8vw, 2.3rem);
+  color: #b7bfd1;
+}
+
+h2 {
+  font-size: clamp(1rem, 2vw, 1.28rem);
+}
+
+h3 {
+  margin-top: 1.15rem;
+  font-size: 0.92rem;
+  color: var(--ink-1);
+}
+
+.core-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 1rem;
+  position: relative;
+}
+
+.secondary {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(121, 133, 158, 0.06), transparent);
+}
+
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(186, 197, 217, 0.08), transparent);
+  transform: translateX(-100%);
+  animation: scan 6s linear infinite;
+}
+
+.panel-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  background: rgba(74, 84, 107, 0.5);
+  color: #e6ebf5;
+  font-size: 0.76rem;
+  padding: 0.3rem 0.52rem;
+  font-family: 'Chakra Petch', monospace;
+}
+
+.compile-form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.compile-form label {
+  font-size: 0.74rem;
+  letter-spacing: 0.11em;
+  color: var(--ink-1);
+}
+
+.compile-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(17, 21, 32, 0.9);
+  color: var(--ink-0);
+  padding: 0.72rem 0.85rem;
+  font-size: 0.95rem;
+  font-family: 'Chakra Petch', monospace;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(135, 146, 166, 0.12);
+}
+
+.compile-form input:focus {
+  box-shadow:
+    inset 0 0 0 1px rgba(168, 177, 196, 0.28),
+    0 0 0 1px rgba(168, 177, 196, 0.22);
+}
+
+button,
+.result-actions a {
+  border: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(62, 72, 95, 0.9), rgba(73, 84, 108, 0.92));
+  color: #f7f9ff;
+  text-decoration: none;
+  padding: 0.7rem 0.85rem;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+button:hover,
+.result-actions a:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+button:disabled {
+  opacity: 0.66;
+  cursor: wait;
+}
+
+.error-line {
+  margin: 0.8rem 0 0;
+  padding: 0.5rem;
+  border: 1px solid rgba(201, 134, 165, 0.62);
+  background: rgba(111, 72, 90, 0.36);
+  color: #f7e8ef;
+  font-size: 0.85rem;
+}
+
+.result-card {
+  margin-top: 1rem;
+  border: 1px solid rgba(142, 160, 188, 0.5);
+  background: rgba(30, 36, 51, 0.76);
+  padding: 0.8rem;
+}
+
+.result-card a {
+  display: block;
+  margin-top: 0.4rem;
+  color: #b8cde0;
+  font-size: 1.01rem;
+  word-break: break-all;
+}
+
+.tiny {
+  margin: 0.42rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+  word-break: break-all;
+}
+
+.result-actions {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.diag-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.diag-grid li {
+  border: 1px solid var(--line-soft);
+  padding: 0.58rem;
+  background: rgba(32, 38, 53, 0.72);
+  display: grid;
+  gap: 0.32rem;
+}
+
+.diag-grid span {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
+.diag-grid strong {
+  color: #ced5e3;
+  font-size: 0.96rem;
+}
+
+.meter {
+  width: 100%;
+  height: 0.28rem;
+  border: 1px solid rgba(136, 149, 175, 0.35);
+  background: rgba(15, 19, 29, 0.78);
+}
+
+.meter div {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(122, 138, 168, 0.85), rgba(159, 171, 194, 0.75));
+  animation: breathe 2.6s ease-in-out infinite;
+}
+
+.hud-footer p {
+  margin: 0;
+  color: #bbc4d6;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+
+@keyframes boot {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.996);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    filter: brightness(0.9);
+  }
+  50% {
+    filter: brightness(1.1);
+  }
+}
+
+@media (max-width: 920px) {
+  .core-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hud-panel,
+  .hud-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .diag-grid {
+    grid-template-columns: 1fr;
+  }
+}
