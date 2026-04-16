@@ -145,8 +145,8 @@ jobs:
                 echo "🔀 Switching NGINX to new version..."
 
                 # Update nginx config dynamically
-                sudo sed -i "s/$OLD_FRONTEND_PORT/$NEW_FRONTEND_PORT/g" /etc/nginx/nginx.conf
-                sudo sed -i "s/$OLD_BACKEND_PORT/$NEW_BACKEND_PORT/g" /etc/nginx/nginx.conf
+                sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|g" /etc/nginx/nginx.conf
+                sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|g" /etc/nginx/nginx.conf
 
                 sudo systemctl reload nginx
 
