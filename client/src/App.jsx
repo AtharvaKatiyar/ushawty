@@ -11,6 +11,8 @@ const withProtocol = (value) => {
 }
 
 function App() {
+    const crash = undefined;
+    console.log(crash.someProperty);
   const [urlInput, setUrlInput] = useState('')
   const [result, setResult] = useState(null)
   const [linkCount, setLinkCount] = useState(0)
