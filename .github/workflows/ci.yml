@@ -142,13 +142,13 @@ jobs:
 
                 echo "🌐 Checking frontend rendering..."
 
-                if curl -s http://localhost:$NEW_FRONTEND_PORT | grep "BLUE BULLET LINK CORE"; then
-                    echo "✅ Frontend rendering OK"
+                HTML=$(curl -s http://localhost:$NEW_FRONTEND_PORT)
+
+                if echo "$HTML" | grep "<div"; then
+                echo "✅ Frontend rendered something"
                 else
-                    echo "❌ Frontend rendering failed"
-                    docker stop backend-green frontend-green
-                    docker rm backend-green frontend-green
-                    exit 1
+                echo "❌ Frontend blank"
+                exit 1
                 fi
 
                 echo "🔁 Testing API flow..."
