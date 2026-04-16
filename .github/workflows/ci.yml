@@ -89,37 +89,75 @@ jobs:
             username: ${{ secrets.EC2_USER }}
             key: ${{ secrets.EC2_SSH_KEY }}
             script: |
-                # pull latest images
+                echo "🚀 Starting deployment..."
+
+                # Pull latest images
                 docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
                 docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-                # run new containers (green)
-                docker run -d -p 5002:5000 --name backend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
-                docker run -d -p 3002:80 --name frontend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
+                echo "🔍 Detecting current active port..."
 
-                echo "Waiting for backend health check..."
+                # Detect current frontend port from nginx config
+                CURRENT_FRONTEND_PORT=$(grep -o '127.0.0.1:[0-9]*' /etc/nginx/nginx.conf | head -1 | cut -d: -f2)
 
-                # wait for backend to be ready
+                if [ "$CURRENT_FRONTEND_PORT" = "3001" ]; then
+                    NEW_FRONTEND_PORT=3002
+                    NEW_BACKEND_PORT=5002
+                    OLD_FRONTEND_PORT=3001
+                    OLD_BACKEND_PORT=5001
+                else
+                    NEW_FRONTEND_PORT=3001
+                    NEW_BACKEND_PORT=5001
+                    OLD_FRONTEND_PORT=3002
+                    OLD_BACKEND_PORT=5002
+                fi
+
+                echo "📦 Deploying to new ports: $NEW_FRONTEND_PORT / $NEW_BACKEND_PORT"
+
+                # Remove any leftover green containers
+                docker stop frontend-green backend-green || true
+                docker rm frontend-green backend-green || true
+
+                # Run new containers (green)
+                docker run -d -p $NEW_BACKEND_PORT:5000 --name backend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
+                docker run -d -p $NEW_FRONTEND_PORT:80 --name frontend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
+
+                echo "⏳ Waiting for backend health check..."
+
+                # Health check loop
                 for i in {1..10}; do
-                    if curl -f http://localhost:5002/health; then
-                    echo "Backend is healthy"
+                    if curl -f http://localhost:$NEW_BACKEND_PORT/health; then
+                    echo "✅ Backend is healthy"
                     break
                     fi
-                    echo "Retrying..."
+                    echo "🔁 Retry $i..."
                     sleep 2
                 done
 
-                # switch nginx to new ports
-                sudo sed -i 's/3001/3002/g' /etc/nginx/nginx.conf
-                sudo sed -i 's/5001/5002/g' /etc/nginx/nginx.conf
+                # Final check (fail deployment if unhealthy)
+                if ! curl -f http://localhost:$NEW_BACKEND_PORT/health; then
+                    echo "❌ Health check failed. Aborting deployment."
+                    docker stop backend-green frontend-green
+                    docker rm backend-green frontend-green
+                    exit 1
+                fi
+
+                echo "🔀 Switching NGINX to new version..."
+
+                # Update nginx config dynamically
+                sudo sed -i "s/$OLD_FRONTEND_PORT/$NEW_FRONTEND_PORT/g" /etc/nginx/nginx.conf
+                sudo sed -i "s/$OLD_BACKEND_PORT/$NEW_BACKEND_PORT/g" /etc/nginx/nginx.conf
+
                 sudo systemctl reload nginx
 
-                # remove old containers
-                docker stop frontend-blue || true
-                docker rm frontend-blue || true
-                docker stop backend-blue || true
-                docker rm backend-blue || true
+                echo "🧹 Cleaning old containers..."
 
-                # rename green → blue
+                docker stop frontend-blue backend-blue || true
+                docker rm frontend-blue backend-blue || true
+
+                echo "🔁 Renaming green → blue"
+
                 docker rename frontend-green frontend-blue
                 docker rename backend-green backend-blue
+
+                echo "✅ Deployment successful!"
