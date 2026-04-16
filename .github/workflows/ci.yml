@@ -89,14 +89,26 @@ jobs:
             username: ${{ secrets.EC2_USER }}
             key: ${{ secrets.EC2_SSH_KEY }}
             script: |
+                # pull latest
                 docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
                 docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-                docker stop backend || true
-                docker rm backend || true
+                # run NEW containers (green)
+                docker run -d -p 5002:5000 --name backend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
+                docker run -d -p 3002:80 --name frontend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-                docker stop frontend || true
-                docker rm frontend || true
+                # update nginx to new ports
+                sudo sed -i 's/5001/5002/g' /etc/nginx/nginx.conf
+                sudo sed -i 's/3001/3002/g' /etc/nginx/nginx.conf
 
-                docker run -d -p 5000:5000 --name backend ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
-                docker run -d -p 3000:80 --name frontend ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
+                sudo systemctl reload nginx
+
+                # remove old containers
+                docker stop backend-blue || true
+                docker rm backend-blue || true
+                docker stop frontend-blue || true
+                docker rm frontend-blue || true
+
+                # rename green → blue
+                docker rename backend-green backend-blue
+                docker rename frontend-green frontend-blue
