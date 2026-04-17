@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 const withProtocol = (value) => {
   const trimmed = value.trim()
@@ -143,7 +143,7 @@ function App() {
       setLinkCount((prev) => prev + 1)
       setUrlInput('')
     } catch {
-      setError('Shortening request failed. Verify backend is running on port 3000.')
+      setError('Shortening request failed. Backend might be unreachable.')
     } finally {
       setIsSubmitting(false)
     }
