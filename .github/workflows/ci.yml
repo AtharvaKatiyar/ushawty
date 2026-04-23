@@ -95,21 +95,35 @@ jobs:
               docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
               docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-              echo "🔍 Detecting current active port..."
+              echo "🔍 Detecting currently running deployment..."
 
-              CURRENT_FRONTEND_PORT=$(grep -o '127.0.0.1:[0-9]*' /etc/nginx/nginx.conf | head -1 | cut -d: -f2)
+              # Detect active frontend-blue container port
+              ACTIVE_FRONTEND_PORT=$(docker ps --format '{{.Names}} {{.Ports}}' | grep frontend-blue | grep -o '[0-9]*->80' | cut -d'-' -f1)
 
-              if [ "$CURRENT_FRONTEND_PORT" = "3001" ]; then
-                  NEW_FRONTEND_PORT=3002
-                  NEW_BACKEND_PORT=5002
+              # Default if nothing running yet
+              if [ -z "$ACTIVE_FRONTEND_PORT" ]; then
+                  ACTIVE_FRONTEND_PORT=3001
+              fi
+
+              echo "Active frontend port: $ACTIVE_FRONTEND_PORT"
+
+              # Decide next deployment slot
+              if [ "$ACTIVE_FRONTEND_PORT" = "3001" ]; then
                   OLD_FRONTEND_PORT=3001
                   OLD_BACKEND_PORT=5001
+
+                  NEW_FRONTEND_PORT=3002
+                  NEW_BACKEND_PORT=5002
               else
-                  NEW_FRONTEND_PORT=3001
-                  NEW_BACKEND_PORT=5001
                   OLD_FRONTEND_PORT=3002
                   OLD_BACKEND_PORT=5002
+
+                  NEW_FRONTEND_PORT=3001
+                  NEW_BACKEND_PORT=5001
               fi
+
+              echo "Old Ports → Frontend:$OLD_FRONTEND_PORT Backend:$OLD_BACKEND_PORT"
+              echo "New Ports → Frontend:$NEW_FRONTEND_PORT Backend:$NEW_BACKEND_PORT"
 
               echo "📦 Deploying to new ports: $NEW_FRONTEND_PORT / $NEW_BACKEND_PORT"
 
