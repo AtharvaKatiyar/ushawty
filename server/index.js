@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 const urlMap = {};
 
-const VERSION = process.env.VERSION || "v3";
+const VERSION = process.env.VERSION || "v4";
 const DEPLOY_TIME = new Date().toISOString();
 
 if (process.env.SIMULATE_CRASH === "true") {
