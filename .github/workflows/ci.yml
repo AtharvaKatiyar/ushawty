@@ -89,142 +89,186 @@ jobs:
             username: ${{ secrets.EC2_USER }}
             key: ${{ secrets.EC2_SSH_KEY }}
             script: |
-                echo "🚀 Starting deployment..."
+              echo "🚀 Starting deployment..."
 
-                # Pull latest images
-                docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
-                docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
+              # Pull latest images
+              docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
+              docker pull ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-                echo "🔍 Detecting current active port..."
+              echo "🔍 Detecting current active port..."
 
-                CURRENT_FRONTEND_PORT=$(grep -o '127.0.0.1:[0-9]*' /etc/nginx/nginx.conf | head -1 | cut -d: -f2)
+              CURRENT_FRONTEND_PORT=$(grep -o '127.0.0.1:[0-9]*' /etc/nginx/nginx.conf | head -1 | cut -d: -f2)
 
-                if [ "$CURRENT_FRONTEND_PORT" = "3001" ]; then
-                    NEW_FRONTEND_PORT=3002
-                    NEW_BACKEND_PORT=5002
-                    OLD_FRONTEND_PORT=3001
-                    OLD_BACKEND_PORT=5001
-                else
-                    NEW_FRONTEND_PORT=3001
-                    NEW_BACKEND_PORT=5001
-                    OLD_FRONTEND_PORT=3002
-                    OLD_BACKEND_PORT=5002
-                fi
+              if [ "$CURRENT_FRONTEND_PORT" = "3001" ]; then
+                  NEW_FRONTEND_PORT=3002
+                  NEW_BACKEND_PORT=5002
+                  OLD_FRONTEND_PORT=3001
+                  OLD_BACKEND_PORT=5001
+              else
+                  NEW_FRONTEND_PORT=3001
+                  NEW_BACKEND_PORT=5001
+                  OLD_FRONTEND_PORT=3002
+                  OLD_BACKEND_PORT=5002
+              fi
 
-                echo "📦 Deploying to new ports: $NEW_FRONTEND_PORT / $NEW_BACKEND_PORT"
+              echo "📦 Deploying to new ports: $NEW_FRONTEND_PORT / $NEW_BACKEND_PORT"
 
-                # Clean leftover
-                docker stop frontend-green backend-green || true
-                docker rm frontend-green backend-green || true
+              # Cleanup previous green leftovers
+              docker stop frontend-green backend-green || true
+              docker rm frontend-green backend-green || true
 
-                # Run new containers
-                docker run -d \
+              # Run backend
+              docker run -d \
                 -p $NEW_BACKEND_PORT:5000 \
                 -e BASE_URL=http://13.233.225.177 \
                 -e SIMULATE_CRASH=false \
                 --name backend-green \
                 ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
-                docker run -d -p $NEW_FRONTEND_PORT:80 --name frontend-green ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-                echo "⏳ Waiting for backend health..."
+              # Run frontend
+              docker run -d \
+                -p $NEW_FRONTEND_PORT:80 \
+                --name frontend-green \
+                ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
 
-                # Backend health check loop
-                for i in {1..10}; do
-                    if curl -f http://localhost:$NEW_BACKEND_PORT/health; then
-                    echo "✅ Backend healthy"
-                    break
-                    fi
-                    echo "🔁 Retry $i..."
-                    sleep 2
-                done
+              echo "⏳ Waiting for backend health..."
 
-                if ! curl -f http://localhost:$NEW_BACKEND_PORT/health; then
-                    echo "❌ Backend failed"
-                    docker stop backend-green frontend-green
-                    docker rm backend-green frontend-green
-                    exit 1
-                fi
+              for i in {1..10}; do
+                  if curl -f http://localhost:$NEW_BACKEND_PORT/health; then
+                      echo "✅ Backend healthy"
+                      break
+                  fi
 
-                echo "🌐 Checking frontend rendering..."
+                  echo "🔁 Retry $i..."
+                  sleep 2
+              done
 
-                echo "🌐 Waiting for frontend..."
+              if ! curl -f http://localhost:$NEW_BACKEND_PORT/health; then
+                  echo "❌ Backend failed"
+                  docker stop backend-green frontend-green
+                  docker rm backend-green frontend-green
+                  exit 1
+              fi
 
-                for i in {1..10}; do
+              echo "🌐 Waiting for frontend..."
+
+              for i in {1..10}; do
                   FRONTEND_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_FRONTEND_PORT)
 
                   if [ "$FRONTEND_STATUS" = "200" ]; then
-                    echo "✅ Frontend reachable"
-                    break
+                      echo "✅ Frontend reachable"
+                      break
                   fi
 
                   echo "🔁 Frontend retry $i..."
                   sleep 2
-                done
+              done
 
-                # final validation
-                FRONTEND_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_FRONTEND_PORT)
+              FRONTEND_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_FRONTEND_PORT)
 
-                if [ "$FRONTEND_STATUS" != "200" ]; then
+              if [ "$FRONTEND_STATUS" != "200" ]; then
                   echo "❌ Frontend unreachable"
                   docker stop backend-green frontend-green
                   docker rm backend-green frontend-green
                   exit 1
-                fi
+              fi
 
-                RESPONSE=$(curl -s -X POST http://localhost:$NEW_BACKEND_PORT/shorten \
-                    -H "Content-Type: application/json" \
-                    -d '{"url":"https://example.com"}')
+              echo "🔁 Testing API..."
 
-                echo "Response: $RESPONSE"
+              RESPONSE=$(curl -s -X POST http://localhost:$NEW_BACKEND_PORT/shorten \
+                  -H "Content-Type: application/json" \
+                  -d '{"url":"https://example.com"}')
 
-                if echo "$RESPONSE" | grep "shortUrl"; then
-                    echo "✅ API working"
-                else
-                    echo "❌ API failed"
-                    docker stop backend-green frontend-green
-                    docker rm backend-green frontend-green
-                    exit 1
-                fi
+              if ! echo "$RESPONSE" | grep "shortUrl"; then
+                  echo "❌ API failed"
+                  docker stop backend-green frontend-green
+                  docker rm backend-green frontend-green
+                  exit 1
+              fi
 
-                echo "🔗 Testing redirect..."
+              echo "🔗 Testing redirect..."
 
-                ID=$(echo "$RESPONSE" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
+              ID=$(echo "$RESPONSE" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
 
-                if [ -z "$ID" ]; then
-                    echo "❌ Failed to extract ID"
-                    docker stop backend-green frontend-green
-                    docker rm backend-green frontend-green
-                    exit 1
-                fi
+              REDIRECT_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_BACKEND_PORT/$ID)
 
-                REDIRECT_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_BACKEND_PORT/$ID)
+              if [ "$REDIRECT_STATUS" != "302" ]; then
+                  echo "❌ Redirect failed"
+                  docker stop backend-green frontend-green
+                  docker rm backend-green frontend-green
+                  exit 1
+              fi
 
-                if [ "$REDIRECT_STATUS" = "302" ]; then
-                    echo "✅ Redirect working"
-                else
-                    echo "❌ Redirect failed"
-                    docker stop backend-green frontend-green
-                    docker rm backend-green frontend-green
-                    exit 1
-                fi
+              echo "🔀 Switching NGINX..."
 
-                echo "🔀 Switching NGINX..."
+              sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|g" /etc/nginx/nginx.conf
+              sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|g" /etc/nginx/nginx.conf
 
-                sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|g" /etc/nginx/nginx.conf
-                sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|g" /etc/nginx/nginx.conf
+              sudo systemctl reload nginx
 
-                sudo systemctl reload nginx
+              echo "🩺 Validating LIVE production..."
 
-                echo "🧹 Cleaning old containers..."
+              LIVE_FRONTEND=$(curl -o /dev/null -s -w "%{http_code}" http://localhost)
+              LIVE_API=$(curl -o /dev/null -s -w "%{http_code}" http://localhost/api/health)
 
-                docker stop frontend-blue backend-blue || true
-                docker rm frontend-blue backend-blue || true
+              if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
+                  echo "❌ Live validation failed → rollback"
 
-                echo "🔁 Renaming green → blue"
+                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
+                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
 
-                docker rename frontend-green frontend-blue
-                docker rename backend-green backend-blue
-                docker start frontend-blue || true
-                docker start backend-blue || true
+                  sudo systemctl reload nginx
 
-                echo "🎉 Deployment successful with FULL validation!"
+                  docker stop frontend-green backend-green
+                  docker rm frontend-green backend-green
+
+                  exit 1
+              fi
+
+              echo "⏳ Monitoring deployment for delayed crashes..."
+
+              sleep 120
+
+              LIVE_FRONTEND=$(curl -o /dev/null -s -w "%{http_code}" http://localhost)
+              LIVE_API=$(curl -o /dev/null -s -w "%{http_code}" http://localhost/api/health)
+
+              if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
+                  echo "❌ Delayed failure detected → rollback"
+
+                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
+                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
+
+                  sudo systemctl reload nginx
+
+                  docker stop frontend-green backend-green
+                  docker rm frontend-green backend-green
+
+                  exit 1
+              fi
+              docker stop frontend-blue backend-blue || true
+              docker rm frontend-blue backend-blue || true
+
+              echo "🔁 Renaming green → blue"
+
+              docker rename frontend-green frontend-blue
+              docker rename backend-green backend-blue
+
+              docker start frontend-blue || true
+              docker start backend-blue || true
+
+              echo "🎉 Deployment successful with rollback protection"
+
+              echo "🧹 Stable deployment — removing previous version"
+
+              docker stop frontend-blue backend-blue || true
+              docker rm frontend-blue backend-blue || true
+
+              echo "🔁 Renaming green → blue"
+
+              docker rename frontend-green frontend-blue
+              docker rename backend-green backend-blue
+
+              docker start frontend-blue || true
+              docker start backend-blue || true
+
+              echo "🎉 Deployment successful with rollback protection"
