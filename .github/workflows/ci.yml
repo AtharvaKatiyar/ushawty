@@ -245,30 +245,41 @@ jobs:
 
                   exit 1
               fi
+              echo "🔁 Finalizing deployment..."
+
+              # Rename green to temporary names first
+              docker rename frontend-green frontend-next
+              docker rename backend-green backend-next
+
+              # Ensure renamed containers are still running
+              docker start frontend-next || true
+              docker start backend-next || true
+
+              echo "🩺 Verifying promoted containers..."
+
+              docker ps | grep frontend-next
+              docker ps | grep backend-next
+
+              if ! docker ps | grep frontend-next || ! docker ps | grep backend-next; then
+                echo "❌ Finalized containers not running"
+
+                sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
+                sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
+
+                sudo systemctl reload nginx
+
+                docker stop frontend-next backend-next || true
+                docker rm frontend-next backend-next || true
+
+                exit 1
+              fi
+
+              # Remove old blue only AFTER safe rename
               docker stop frontend-blue backend-blue || true
               docker rm frontend-blue backend-blue || true
 
-              echo "🔁 Renaming green → blue"
-
-              docker rename frontend-green frontend-blue
-              docker rename backend-green backend-blue
-
-              docker start frontend-blue || true
-              docker start backend-blue || true
-
-              echo "🎉 Deployment successful with rollback protection"
-
-              echo "🧹 Stable deployment — removing previous version"
-
-              docker stop frontend-blue backend-blue || true
-              docker rm frontend-blue backend-blue || true
-
-              echo "🔁 Renaming green → blue"
-
-              docker rename frontend-green frontend-blue
-              docker rename backend-green backend-blue
-
-              docker start frontend-blue || true
-              docker start backend-blue || true
+              # Promote next → blue
+              docker rename frontend-next frontend-blue
+              docker rename backend-next backend-blue
 
               echo "🎉 Deployment successful with rollback protection"
