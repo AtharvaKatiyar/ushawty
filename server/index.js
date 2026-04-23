@@ -13,6 +13,13 @@ const urlMap = {};
 const VERSION = process.env.VERSION || "v1";
 const DEPLOY_TIME = new Date().toISOString();
 
+if (process.env.SIMULATE_CRASH === "true") {
+  setTimeout(() => {
+    console.log("💥 Simulated delayed crash");
+    process.exit(1);
+  }, 120000);
+}
+
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
