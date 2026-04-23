@@ -2,10 +2,13 @@ import request from "supertest";
 import app from "../index.js";
 
 describe("URL Shortener API", () => {
-  it("should return OK on /health", async () => {
+  it("should return health info", async () => {
     const res = await request(app).get("/health");
+
     expect(res.statusCode).toBe(200);
-    expect(res.text).toBe("OK");
+    expect(res.body.status).toBe("ok");
+    expect(res.body.version).toBeDefined();
+    expect(res.body.uptime).toBeDefined();
   });
 
   it("should shorten a URL", async () => {
