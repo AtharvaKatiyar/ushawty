@@ -14,7 +14,12 @@ const VERSION = process.env.VERSION || "v1";
 const DEPLOY_TIME = new Date().toISOString();
 
 app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+  res.json({
+    status: "ok",
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: VERSION
+  });
 });
 
 app.get("/info", (req, res) => {
@@ -30,6 +35,12 @@ app.post("/shorten", (req, res) => {
 
     if (!url) {
       return res.status(400).json({ error: "URL required" });
+    }
+
+    try {
+      new URL(url);
+    } catch {
+      return res.status(400).json({ error: "Invalid URL" });
     }
 
     const id = nanoid(6);
@@ -48,13 +59,18 @@ app.post("/shorten", (req, res) => {
 });
 
 app.get("/:id", (req, res) => {
-  const originalUrl = urlMap[req.params.id];
+  try {
+    const originalUrl = urlMap[req.params.id];
 
-  if (originalUrl) {
-    return res.redirect(originalUrl);
+    if (originalUrl) {
+      return res.redirect(originalUrl);
+    }
+
+    res.status(404).send("Not found");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Redirect failed");
   }
-
-  res.status(404).send("Not found");
 });
 
 export default app;
