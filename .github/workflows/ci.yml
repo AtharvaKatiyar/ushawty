@@ -250,25 +250,30 @@ jobs:
 
               echo "⏳ Monitoring deployment for delayed crashes..."
 
-              sleep 180
+              for i in {1..180}; do
 
-              LIVE_FRONTEND=$(curl -o /dev/null -s -w "%{http_code}" http://localhost)
-              LIVE_API=$(curl -o /dev/null -s -w "%{http_code}" http://localhost/api/health)
+                LIVE_FRONTEND=$(curl -o /dev/null -s -w "%{http_code}" http://localhost)
+                LIVE_API=$(curl -o /dev/null -s -w "%{http_code}" http://localhost/api/health)
 
-              if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
-                  echo "❌ Delayed failure detected → rollback"
+                if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
+                    echo "❌ Delayed failure detected → rollback immediately"
 
-                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
-                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
+                    sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
+                    sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
 
-                  sudo systemctl reload nginx
+                    sudo systemctl reload nginx
 
-                  docker stop frontend-green backend-green
-                  docker rm frontend-green backend-green
+                    docker stop frontend-green backend-green
+                    docker rm frontend-green backend-green
 
-                  echo "⚠️ Rolled back successfully"
-                  exit 0
-              fi
+                    echo "⚠️ Rolled back immediately"
+
+                    exit 0
+                fi
+
+                sleep 1
+              done
+              
               echo "🔁 Finalizing deployment..."
 
               # Rename green to temporary names first
