@@ -224,5 +224,7 @@ jobs:
 
                 docker rename frontend-green frontend-blue
                 docker rename backend-green backend-blue
+                docker start frontend-blue || true
+                docker start backend-blue || true
 
                 echo "🎉 Deployment successful with FULL validation!"
