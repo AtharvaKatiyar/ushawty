@@ -10,14 +10,14 @@ const PORT = process.env.PORT || 5000;
 
 const urlMap = {};
 
-const VERSION = process.env.VERSION || "v2";
+const VERSION = process.env.VERSION || "v3";
 const DEPLOY_TIME = new Date().toISOString();
 
 if (process.env.SIMULATE_CRASH === "true") {
   setTimeout(() => {
     console.log("💥 Simulated delayed crash");
     process.exit(1);
-  }, 120000);
+  }, 60000);
 }
 
 app.get("/health", (req, res) => {
