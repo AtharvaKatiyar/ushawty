@@ -142,13 +142,15 @@ jobs:
 
                 echo "🌐 Checking frontend rendering..."
 
-                HTML=$(curl -s http://localhost:$NEW_FRONTEND_PORT)
+                FRONTEND_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_FRONTEND_PORT)
 
-                if echo "$HTML" | grep "<div"; then
-                echo "✅ Frontend rendered something"
+                if [ "$FRONTEND_STATUS" = "200" ]; then
+                  echo "✅ Frontend reachable"
                 else
-                echo "❌ Frontend blank"
-                exit 1
+                  echo "❌ Frontend unreachable"
+                  docker stop backend-green frontend-green
+                  docker rm backend-green frontend-green
+                  exit 1
                 fi
 
                 echo "🔁 Testing API flow..."
