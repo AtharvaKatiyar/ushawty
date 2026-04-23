@@ -142,18 +142,29 @@ jobs:
 
                 echo "🌐 Checking frontend rendering..."
 
+                echo "🌐 Waiting for frontend..."
+
+                for i in {1..10}; do
+                  FRONTEND_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_FRONTEND_PORT)
+
+                  if [ "$FRONTEND_STATUS" = "200" ]; then
+                    echo "✅ Frontend reachable"
+                    break
+                  fi
+
+                  echo "🔁 Frontend retry $i..."
+                  sleep 2
+                done
+
+                # final validation
                 FRONTEND_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:$NEW_FRONTEND_PORT)
 
-                if [ "$FRONTEND_STATUS" = "200" ]; then
-                  echo "✅ Frontend reachable"
-                else
+                if [ "$FRONTEND_STATUS" != "200" ]; then
                   echo "❌ Frontend unreachable"
                   docker stop backend-green frontend-green
                   docker rm backend-green frontend-green
                   exit 1
                 fi
-
-                echo "🔁 Testing API flow..."
 
                 RESPONSE=$(curl -s -X POST http://localhost:$NEW_BACKEND_PORT/shorten \
                     -H "Content-Type: application/json" \
