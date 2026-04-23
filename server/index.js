@@ -25,21 +25,26 @@ app.get("/info", (req, res) => {
 });
 
 app.post("/shorten", (req, res) => {
-  const { url } = req.body;
+  try {
+    const { url } = req.body;
 
-  if (!url) {
-    return res.status(400).json({ error: "URL required" });
+    if (!url) {
+      return res.status(400).json({ error: "URL required" });
+    }
+
+    const id = nanoid(6);
+    urlMap[id] = url;
+
+    const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
+    res.json({
+      shortUrl: `${BASE_URL}/${id}`,
+      id
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  const id = nanoid(6);
-  urlMap[id] = url;
-
-  const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
-
-  res.json({
-    shortUrl: `${BASE_URL}/${id}`,
-    id
-  });
 });
 
 app.get("/:id", (req, res) => {
