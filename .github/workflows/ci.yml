@@ -97,17 +97,20 @@ jobs:
 
               echo "🔍 Detecting currently running deployment..."
 
-              # Detect active frontend-blue container port
-              ACTIVE_FRONTEND_PORT=$(docker ps --format '{{.Names}} {{.Ports}}' | grep frontend-blue | grep -o '[0-9]*->80' | cut -d'-' -f1)
+              ACTIVE_FRONTEND_PORT=$(docker ps \
+                --filter "name=frontend-blue" \
+                --format "{{.Ports}}" \
+                | grep -o '[0-9]\+:80' \
+                | cut -d':' -f1 \
+                | head -1)
 
-              # Default if nothing running yet
+              # fallback for first deployment
               if [ -z "$ACTIVE_FRONTEND_PORT" ]; then
                   ACTIVE_FRONTEND_PORT=3001
               fi
 
               echo "Active frontend port: $ACTIVE_FRONTEND_PORT"
 
-              # Decide next deployment slot
               if [ "$ACTIVE_FRONTEND_PORT" = "3001" ]; then
                   OLD_FRONTEND_PORT=3001
                   OLD_BACKEND_PORT=5001
