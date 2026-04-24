@@ -143,7 +143,7 @@ jobs:
               # Run backend
               docker run -d \
                 -p $NEW_BACKEND_PORT:5000 \
-                -e BASE_URL=http://13.233.225.177 \
+                -e BASE_URL=http://13.206.84.217 \
                 -e SIMULATE_CRASH=true \
                 --name backend-green \
                 ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
