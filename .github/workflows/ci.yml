@@ -232,6 +232,8 @@ jobs:
               # Switch backend /api route with trailing slash
               sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
 
+              sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT;#g" /etc/nginx/nginx.conf
+
               sudo nginx -t
 
               sudo systemctl reload nginx
@@ -258,6 +260,8 @@ jobs:
 
                   # Rollback backend /api route
                   sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
+
+                  sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;#g" /etc/nginx/nginx.conf
 
                   sudo nginx -t
                   sudo systemctl reload nginx
@@ -292,6 +296,8 @@ jobs:
 
                     # Rollback backend /api route
                     sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
+
+                    sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;#g" /etc/nginx/nginx.conf
 
                     sudo nginx -t
                     sudo systemctl reload nginx
@@ -330,6 +336,8 @@ jobs:
 
                 # Rollback backend /api route
                 sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
+
+                sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;#g" /etc/nginx/nginx.conf
 
                 sudo nginx -t
                 sudo systemctl reload nginx
