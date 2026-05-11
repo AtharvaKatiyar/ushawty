@@ -142,14 +142,16 @@ jobs:
 
               # Run backend
               docker run -d \
+                --restart unless-stopped \
                 -p $NEW_BACKEND_PORT:5000 \
-                -e BASE_URL=http://13.206.84.217 \
+                -e BASE_URL=http://${{ secrets.EC2_HOST }} \
                 -e SIMULATE_CRASH=false \
                 --name backend-green \
                 ${{ secrets.DOCKER_USERNAME }}/ushawty-backend:latest
 
               # Run frontend
               docker run -d \
+                --restart unless-stopped \
                 -p $NEW_FRONTEND_PORT:80 \
                 --name frontend-green \
                 ${{ secrets.DOCKER_USERNAME }}/ushawty-frontend:latest
@@ -224,8 +226,16 @@ jobs:
 
               echo "🔀 Switching NGINX..."
 
-              sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|g" /etc/nginx/nginx.conf
-              sudo sed -i "s|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|g" /etc/nginx/nginx.conf
+              # Switch frontend
+              sudo sed -Ei "s|proxy_pass http://127.0.0.1:(3001|3002);|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
+
+              # Switch backend normal route
+              sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002);|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+
+              # Switch backend /api route with trailing slash
+              sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002)/;|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+
+              sudo nginx -t
 
               sudo systemctl reload nginx
 
@@ -237,9 +247,16 @@ jobs:
               if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
                   echo "❌ Live validation failed → rollback"
 
-                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
-                  sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
+                  # Rollback frontend
+                  sudo sed -Ei "s|proxy_pass http://127.0.0.1:(3001|3002);|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
 
+                  # Rollback backend normal route
+                  sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002);|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+
+                  # Rollback backend /api route
+                  sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002)/;|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+
+                  sudo nginx -t
                   sudo systemctl reload nginx
 
                   docker stop frontend-green backend-green
@@ -258,9 +275,16 @@ jobs:
                 if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
                     echo "❌ Delayed failure detected → rollback immediately"
 
-                    sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
-                    sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
+                    # Rollback frontend
+                    sudo sed -Ei "s|proxy_pass http://127.0.0.1:(3001|3002);|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
 
+                    # Rollback backend normal route
+                    sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002);|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+
+                    # Rollback backend /api route
+                    sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002)/;|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+
+                    sudo nginx -t
                     sudo systemctl reload nginx
 
                     docker stop frontend-green backend-green
@@ -292,9 +316,16 @@ jobs:
               if ! docker ps | grep frontend-next || ! docker ps | grep backend-next; then
                 echo "❌ Finalized containers not running"
 
-                sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT|g" /etc/nginx/nginx.conf
-                sudo sed -i "s|proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT|g" /etc/nginx/nginx.conf
+                # Rollback frontend
+                sudo sed -Ei "s|proxy_pass http://127.0.0.1:(3001|3002);|proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
 
+                # Rollback backend normal route
+                sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002);|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+
+                # Rollback backend /api route
+                sudo sed -Ei "s|proxy_pass http://127.0.0.1:(5001|5002)/;|proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+
+                sudo nginx -t
                 sudo systemctl reload nginx
 
                 docker stop frontend-next backend-next || true
