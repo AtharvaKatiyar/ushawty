@@ -244,6 +244,15 @@ jobs:
               LIVE_FRONTEND=$(curl -o /dev/null -s -w "%{http_code}" http://localhost)
               LIVE_API=$(curl -o /dev/null -s -w "%{http_code}" http://localhost/api/health)
 
+              echo "Frontend status: $LIVE_FRONTEND"
+              echo "API status: $LIVE_API"
+
+              echo "Testing frontend response:"
+              curl http://localhost || true
+
+              echo "Testing API response:"
+              curl http://localhost/api/health || true
+
               if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
                   echo "❌ Live validation failed → rollback"
 
@@ -272,6 +281,15 @@ jobs:
                 LIVE_FRONTEND=$(curl -o /dev/null -s -w "%{http_code}" http://localhost)
                 LIVE_API=$(curl -o /dev/null -s -w "%{http_code}" http://localhost/api/health)
 
+                echo "Frontend status: $LIVE_FRONTEND"
+                echo "API status: $LIVE_API"
+
+                echo "Testing frontend response:"
+                curl http://localhost || true
+
+                echo "Testing API response:"
+                curl http://localhost/api/health || true
+                
                 if [ "$LIVE_FRONTEND" != "200" ] || [ "$LIVE_API" != "200" ]; then
                     echo "❌ Delayed failure detected → rollback immediately"
 
