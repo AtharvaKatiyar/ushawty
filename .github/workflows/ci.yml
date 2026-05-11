@@ -227,13 +227,13 @@ jobs:
               echo "🔀 Switching NGINX..."
 
               # Switch frontend
-              sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
+              sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$NEW_FRONTEND_PORT;#g" /etc/nginx/nginx.conf
 
               # Switch backend normal route
-              sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+              sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT;#g" /etc/nginx/nginx.conf
 
               # Switch backend /api route with trailing slash
-              sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+              sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$NEW_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
 
               sudo nginx -t
 
@@ -248,13 +248,13 @@ jobs:
                   echo "❌ Live validation failed → rollback"
 
                   # Rollback frontend
-                  sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
+                  sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;#g" /etc/nginx/nginx.conf
 
                   # Rollback backend normal route
-                  sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+                  sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;#g" /etc/nginx/nginx.conf
 
                   # Rollback backend /api route
-                  sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+                  sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
 
                   sudo nginx -t
                   sudo systemctl reload nginx
@@ -276,13 +276,13 @@ jobs:
                     echo "❌ Delayed failure detected → rollback immediately"
 
                     # Rollback frontend
-                    sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
+                    sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;#g" /etc/nginx/nginx.conf
 
                     # Rollback backend normal route
-                    sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+                    sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;#g" /etc/nginx/nginx.conf
 
                     # Rollback backend /api route
-                    sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+                    sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
 
                     sudo nginx -t
                     sudo systemctl reload nginx
@@ -317,13 +317,13 @@ jobs:
                 echo "❌ Finalized containers not running"
 
                 # Rollback frontend
-                sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;|g" /etc/nginx/nginx.conf
+                sudo sed -Ei "s#proxy_pass http://127.0.0.1:(3001|3002);#proxy_pass http://127.0.0.1:$OLD_FRONTEND_PORT;#g" /etc/nginx/nginx.conf
 
                 # Rollback backend normal route
-                sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;|g" /etc/nginx/nginx.conf
+                sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002);#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT;#g" /etc/nginx/nginx.conf
 
                 # Rollback backend /api route
-                sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;|g" /etc/nginx/nginx.conf
+                sudo sed -Ei "s#proxy_pass http://127.0.0.1:(5001|5002)/;#proxy_pass http://127.0.0.1:$OLD_BACKEND_PORT/;#g" /etc/nginx/nginx.conf
 
                 sudo nginx -t
                 sudo systemctl reload nginx
